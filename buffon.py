@@ -68,29 +68,110 @@ def needle_drops(l, d, N, rng):
             #random angle between the needle and the lines
             phi = rng.uniform(0.0, np.pi/2)
 
+            #cross condition
+            crosses = x <=(l/2)*np.sin(phi)
             #if loop for crossing
-            if x <= (l/2)*np.sin(phi):
-            
-                #add the results to the lists
-                  H += 1
+            if crosses:
+          
+              #add the results to the lists
+                H += 1
 
-                  P_head_values.append( H/j )
-                  if  H>0:
-                   
-                    pi_head_values.append( (2*l*j)/(d*H))
-                  else: 
-                    pi_head_values.apppend(np.nan)
+            P_head_values.append( H/j )
+            if  H>0:
+              
+              pi_head_values.append( (2*l*j)/(d*H))
+            else: 
+              pi_head_values.append(np.nan)
+
+                      # Detailed output only for the first few trials
+            if j <= 10:
+                logger.log(
+                    VERBOSE,
+                    f'Trial {j}: x={x:.4f}, phi={phi:.4f}, '
+                    f'crosses={crosses}, H={H}'
+                )
+
+        logger.info(f'Finished {N} drops with {H} crossings.')
 
         return P_head_values, pi_head_values, H
 
 P_head_values, pi_head_values, H = needle_drops(l, d, N, rng)
 
-print('P:', P_head_values[-1])
-print('estimate pi', pi_head_values[-1])
-print(np.pi)
-print('number of crossing:', H)
+P_head_values = np.array(P_head_values)
+pi_head_values = np.array(pi_head_values)
+
+P_hat = P_head_values[-1]
+pi_hat = pi_head_values[-1]
+
+relative_error = (pi_hat - np.pi) / np.pi
 
 
+#print_values
+print()
+print(f'l = {l}')
+print(f'd = {d}')
+print(f'N = {N}')
+print(f'H = {H}')
+print(f'Predicted crossing probability P = {2 * l / (np.pi * d):.6f}')
+print(f'Measured crossing probability P_hat = {P_hat:.6f}')
+print(f'Estimated pi = {pi_hat:.6f}')
+print(f'Reference pi = {np.pi:.6f}')
+print(f'Relative error = {relative_error:.6%}')
+
+#plots
+
+j_values = np.arange(1, N + 1)
+
+# True only where the pi estimate is defined
+valid_pi = ~np.isnan(pi_head_values)
+
+fig, ax = plt.subplots()
+
+ax.semilogx(
+    j_values[valid_pi],
+    pi_head_values[valid_pi],
+    label=r'Running estimate $\hat{\pi}(j)$'
+)
+
+ax.axhline(
+    np.pi,
+    color='black',
+    linestyle='--',
+    label=r'Reference value $\pi$'
+)
+
+ax.set_xlabel('Number of drops j')
+ax.set_ylabel(r'Estimated value $\hat{\pi}$')
+ax.set_title("Buffon's Needle: Running Estimate of Pi")
+ax.grid()
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+#indipendent experiments
+M = 30
+
+print()
+print('M=30')
+print(f'Reference pi = {np.pi:.6f}')
+for i in range(1, M+1):
+    
+    rng2 = np.random.default_rng(i)
+
+    P_head_values_M, pi_head_values_M, H = needle_drops(l, d, N, rng2)
+
+    P_head_values_M = np.array(P_head_values_M)
+    pi_head_values_M = np.array(pi_head_values_M)
+
+    P_hat_M = P_head_values_M[-1]
+    pi_hat_M = pi_head_values_M[-1]
+
+    relative_error_M = (pi_hat_M - np.pi) / np.pi
+    print()
+    print(f'Estimated pi = {pi_hat_M:.6f}')
+    print(f'Relative error = {relative_error_M:.6%}')
+
+    
 
 
 
