@@ -149,27 +149,77 @@ plt.tight_layout()
 plt.show()
 
 #indipendent experiments
+
+
+# Independent experiments
 M = 30
 
+# Select 500 trial values across the full range
+selected_indices = np.unique(
+    np.logspace(0, np.log10(N), 500, dtype=int)
+) - 1
+
+j_values = np.arange(1, N + 1)
+j_selected = j_values[selected_indices]
+
+fig2, ax2 = plt.subplots()
+
 print()
-print('M=30')
+print('M = 30')
 print(f'Reference pi = {np.pi:.6f}')
-for i in range(1, M+1):
-    
+
+for i in range(1, M + 1):
+
+    # Each experiment gets fresh random draws
     rng2 = np.random.default_rng(i)
 
-    P_head_values_M, pi_head_values_M, H = needle_drops(l, d, N, rng2)
+    P_head_values_M, pi_head_values_M, H = needle_drops(
+        l, d, N, rng2
+    )
 
-    P_head_values_M = np.array(P_head_values_M)
     pi_head_values_M = np.array(pi_head_values_M)
 
-    P_hat_M = P_head_values_M[-1]
-    pi_hat_M = pi_head_values_M[-1]
+    # Keep only selected values for this plot
+    pi_selected = pi_head_values_M[selected_indices]
 
+    # Do not plot undefined estimates before the first crossing
+    valid_pi = ~np.isnan(pi_selected)
+
+    ax2.semilogx(
+        j_selected[valid_pi],
+        pi_selected[valid_pi],
+        color='tab:blue',
+        alpha=0.20,
+        linewidth=0.7
+    )
+
+    # Optional: print the final result of each experiment
+    pi_hat_M = pi_head_values_M[-1]
     relative_error_M = (pi_hat_M - np.pi) / np.pi
-    print()
-    print(f'Estimated pi = {pi_hat_M:.6f}')
-    print(f'Relative error = {relative_error_M:.6%}')
+
+    print(
+        f'Experiment {i:2d}: '
+        f'pi_hat = {pi_hat_M:.6f}, '
+        f'relative error = {relative_error_M:.4%}'
+    )
+
+# Reference line at pi
+ax2.axhline(
+    np.pi,
+    color='black',
+    linestyle='--',
+    linewidth=2,
+    label=r'Reference value $\pi$'
+)
+
+ax2.set_xlabel('Number of drops j')
+ax2.set_ylabel(r'Estimated value $\hat{\pi}(j)$')
+ax2.set_title(r"Buffon's Needle: 30 Independent Estimates of $\pi$")
+ax2.grid()
+ax2.legend()
+
+plt.tight_layout()
+plt.show()
 
     
 
