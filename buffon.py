@@ -40,7 +40,8 @@ logger.log(VERBOSE, 'This message appears only for VERBOSE.'
 l = 1
 d = 1
 N = 100_000
-rng = np.random.default_rng(44)
+parser.add_argument('--seed', type=int, default=44)
+rng = np.random.default_rng(args.seed)
 
 #defining the needle drop function
 def needle_drops(l, d, N, rng):
@@ -171,7 +172,7 @@ print(f'Reference pi = {np.pi:.6f}')
 for i in range(1, M + 1):
 
     # Each experiment gets fresh random draws
-    rng2 = np.random.default_rng(i)
+    rng2 = rng
 
     P_head_values_M, pi_head_values_M, H = needle_drops(
         l, d, N, rng2
