@@ -31,9 +31,6 @@ logger = logging.getLogger(__name__)
 
 #outputs for the possible loggers
 logger.info('Program started')
-logger.debug('This massage appears for DEBUG and VERBOSE.')
-logger.log(VERBOSE, 'This message appears only for VERBOSE.'
-           )
 
 #  boundry conditions
 R = 1.0
@@ -51,48 +48,163 @@ right_center = (R / 2, 0.0)
 #def integration
 def monte_carlo_integration(rng,N, R ):
 
-        #empty lists for neither circel, left cicle, right cicle
-        #or both cicles
-        neither_circle = 0
-        left_only = 0
-        right_only = 0
-        both_circles = 0
-        #for loop for random numberes
-        for j in range(1, N+1):
+    #empty lists for neither circel, left cicle, right cicle
+    #or both cicles -> bot nessecary because i now do it with arrays
 
-            #generate points inside the rechtangel
-            x = rng.uniform(-3*R /2, 3*R /2, N)
-            y = rng.uniform(R, R, N)
+    #for loop for random numberes
+    logger.debug(f'monte_carlo_integration called with N={N}, R={R}')
+    #generate points inside the rechtangel ->array
 
-            #overlap condiotion and estimate aread+
-            inside_left = ((x - left_center[0])**2 
-                           + (y - left_center[1])**2
-                           <=R**2)
+    x = rng.uniform(-3*R /2, 3*R /2, N)
+    y = rng.uniform(-R, R, N)
 
-            inside_right = ((x - right_center[0])**2 
-                                       + (y - right_center[1])**2
-                                       <=R**2)
+    #overlap condiotion and estimate aread+
+    inside_left = ((x - left_center[0])**2 
+                    + (y - left_center[1])**2
+                    <=R**2)
 
-            #append the lists if the overlap conditiosn are true 
-            if inside_left & ~inside_right:
-                left_only +=1
+    inside_right = ((x - right_center[0])**2 
+                                + (y - right_center[1])**2
+                                <=R**2)
 
-            if inside_right & ~inside_left:
-                right_only  += 1
+    #append the lists if the overlap conditiosn are true 
+    # Four mutually exclusive point categories
 
-            if inside_left & inside_right:
-                 both_circles +=1
+    neither_circle = ~inside_left & ~inside_right
+    left_only = inside_left & ~inside_right
+    right_only = ~inside_left & inside_right
+    both_circles = inside_left & inside_right
 
-            if ~inside_right  & ~inside_left:
-                 neither_circle +=1
+    logger.log(VERBOSE,
+    f'First point: x={x[0]:.4f}, y={y[0]:.4f}, '
+    f'in left={inside_left[0]}, in right={inside_right[0]}'
+    )
 
-        
+
+    return x, y, neither_circle, left_only, right_only, both_circles
 
 
 
         
     #return lists
+x, y, neither_circle, left_only, right_only, both_circles = (
+    monte_carlo_integration(rng, N, R)
+)
 
-#calculate overlap with points in the searched rgion
+#count the points in each category
+n_neither = np.count_nonzero(neither_circle)
+n_left = np.count_nonzero(left_only)
+n_right = np.count_nonzero(right_only)
+n_both = np.count_nonzero(both_circles)
+
+#logger
+logger.info(
+    f'Classified {N} points: neither={n_neither}, '
+    f'left only={n_left}, right only={n_right}, '
+    f'both={n_both}'
+)
+
+print('Neither circle:', n_neither)
+print('Left circle only:', n_left)
+print('Right circle only:', n_right)
+print('Both circles:', n_both)
+print('Total:', n_neither + n_left + n_right + n_both)
+
+# Area of the bounding rectangle
+
+A_B = 6 * R**2
+
+# H is the number of points in both circles
+H = n_both
 
 
+# Monte carlo overlap fraction and area estimate
+overlap_fraction = H / N
+A_hat = A_B * overlap_fraction
+
+# Exact reference overlap area
+A_reference = (
+    (2 * np.pi / 3) - (np.sqrt(3) / 2)
+) * R**2
+
+relative_error = (A_hat - A_reference) / A_reference
+
+print()
+print(f'Bounding rectangle area A_B: {A_B:.6f}')
+print(f'Overlap count H: {H}')
+print(f'Overlap fraction H / N: {overlap_fraction:.6f}')
+print(f'Estimated overlap area A_hat: {A_hat:.6f}')
+print(f'Reference overlap area: {A_reference:.6f}')
+print(f'Relative error: {relative_error:.6%}')
+
+logger.info(
+    f'Overlap estimate: H={H}, fraction={overlap_fraction:.6f}, '
+    f'A_hat={A_hat:.6f}, relative error={relative_error:.4%}'
+)
+
+print('Difference between left-only and right-only:', abs(n_left - n_right))
+
+#plot
+# Circle boundaries for the plot
+theta = np.linspace(0, 2 * np.pi, 300)
+
+left_circle_x = left_center[0] + R * np.cos(theta)
+left_circle_y = left_center[1] + R * np.sin(theta)
+
+right_circle_x = right_center[0] + R * np.cos(theta)
+right_circle_y = right_center[1] + R * np.sin(theta)
+
+# Scatter plot
+fig, ax = plt.subplots()
+
+ax.scatter(
+    x[neither_circle], y[neither_circle],
+    s=4, alpha=0.25,
+    label='Neither circle'
+)
+
+ax.scatter(
+    x[left_only], y[left_only],
+    s=4, alpha=0.25,
+    label='Left circle only'
+)
+
+ax.scatter(
+    x[right_only], y[right_only],
+    s=4, alpha=0.25,
+    label='Right circle only'
+)
+
+ax.scatter(
+    x[both_circles], y[both_circles],
+    s=4, alpha=0.35,
+    label='Both circles'
+)
+
+# Circle boundaries
+ax.plot(left_circle_x, left_circle_y, color='black')
+ax.plot(right_circle_x, right_circle_y, color='black')
+
+# Circle centers
+ax.plot(
+    left_center[0], left_center[1],
+    marker='x', color='black',
+    markersize=8, linestyle='none',
+    label='Circle centers'
+)
+
+ax.plot(
+    right_center[0], right_center[1],
+    marker='x', color='black',
+    markersize=8, linestyle='none'
+)
+
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_title('Monte Carlo Sampling of Two Overlapping Circles')
+ax.set_aspect('equal', adjustable='box')
+ax.grid()
+ax.legend(markerscale=2)
+
+plt.tight_layout()
+plt.show()
