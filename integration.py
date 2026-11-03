@@ -46,7 +46,7 @@ left_center = (-R / 2, 0.0)
 right_center = (R / 2, 0.0)
 
 #def integration
-def monte_carlo_integration(rng,N, R ):
+def monte_carlo_circle(rng,N, R ):
 
     #empty lists for neither circel, left cicle, right cicle
     #or both cicles -> bot nessecary because i now do it with arrays
@@ -83,12 +83,66 @@ def monte_carlo_integration(rng,N, R ):
 
     return x, y, neither_circle, left_only, right_only, both_circles
 
+def monte_carlo_spheres(rng, N, R):
+
+    logger.debug(f'monte_carlo_spheres called with N={N}, R={R}')
+
+    # #generate points inside the shapes in 3d ->array
+    x = rng.uniform(-R / 2, R / 2, N)
+    y = rng.uniform(-R, R, N)
+    z = rng.uniform(-R, R, N)
+
+    # check overlap conditions in the  sphere
+    inside_left = (
+        (x + R / 2)**2
+        + y**2
+        + z**2
+        <= R**2
+    )
+
+
+    inside_right = (
+        (x - R / 2)**2
+        + y**2
+        + z**2
+        <= R**2
+    )
+
+    # points in the shared volume
+    inside_both = inside_left & inside_right
+    H = np.count_nonzero(inside_both)
+
+    p_hat = H / N
+
+    # volume of the bounding box
+    V_box = 4 * R**3
+
+    # Final volume estimate
+    V_hat = V_box * p_hat
+
+    # running volume estimate afte every sample
+    H_running = np.cumsum(inside_both)
+    j_values = np.arange(1, N + 1)
+    V_running = V_box * H_running / j_values
+
+    logger.log(
+        VERBOSE,
+        f'First point: x={x[0]:.4f}, y={y[0]:.4f}, z={z[0]:.4f}, '
+        f'inside both={inside_both[0]}'
+    )
+
+    logger.info(
+        f'Sphere simulation finished: H={H}, '
+        f'p_hat={p_hat:.6f}, V_hat={V_hat:.6f}'
+    )
+
+    return H, p_hat, V_hat, V_running
 
 
         
     #return lists
 x, y, neither_circle, left_only, right_only, both_circles = (
-    monte_carlo_integration(rng, N, R)
+    monte_carlo_circle(rng, N, R)
 )
 
 #count the points in each category
@@ -208,3 +262,5 @@ ax.legend(markerscale=2)
 
 plt.tight_layout()
 plt.show()
+
+#spereical
